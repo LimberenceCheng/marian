@@ -36,7 +36,7 @@ EncoderDecoder::EncoderDecoder(
   encDecBuffer_(god.Get<size_t>("encoder-buffer-size"))
 
 {
-  //BEGIN_TIMER("EncoderDecoder");
+  BEGIN_TIMER("EncoderDecoder");
 
   std::thread *thread = new std::thread( [&]{ DecodeAsync(god); });
   decThread_.reset(thread);
@@ -45,7 +45,29 @@ EncoderDecoder::EncoderDecoder(
 EncoderDecoder::~EncoderDecoder()
 {
   decThread_->join();
-  //PAUSE_TIMER("EncoderDecoder");
+  PAUSE_TIMER("EncoderDecoder");
+
+  if (timers.size()) {
+    boost::timer::nanosecond_type encDecWall = timers["EncoderDecoder"].elapsed().wall;
+
+    cerr << "timers:" << endl;
+    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+      const boost::timer::cpu_timer &timer = iter->second;
+      boost::timer::cpu_times t = timer.elapsed();
+      boost::timer::nanosecond_type wallTime = t.wall;
+
+      int percent = (float) wallTime / (float) encDecWall * 100.0f;
+
+      cerr << iter->first << " ";
+
+      for (int i = 0; i < ((int)35 - (int)iter->first.size()); ++i) {
+        cerr << " ";
+      }
+
+      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
+    }
+  }
+
 }
 
 State* EncoderDecoder::NewState() const {
@@ -240,6 +262,7 @@ void EncoderDecoder::DecodeAsyncInternal(const God &god)
     //numNew = (maxBeamSize * miniBatch - survivors.size()) / maxBeamSize;
 
     if (numNew) {
+      BEGIN_TIMER("DecodeAsyncInternal.numNew");
       std::vector<EncOut::SentenceElement> newSentences;
 
       //BEGIN_TIMER("DecodeAsyncInternal.encDecBuffer_.Get");
@@ -269,6 +292,8 @@ void EncoderDecoder::DecodeAsyncInternal(const God &god)
       //BEGIN_TIMER("DecodeAsyncInternal.AddHypos");
       AddHypos(newSentences, survivors, histories);
       //PAUSE_TIMER("DecodeAsyncInternal.AddHypos");
+
+      PAUSE_TIMER("DecodeAsyncInternal.numNew");
     }
 
     prevHyps.swap(survivors);
