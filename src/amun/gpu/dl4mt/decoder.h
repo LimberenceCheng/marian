@@ -298,9 +298,9 @@ class Decoder {
           Prod(Probs, T1, *w4);
           PAUSE_TIMER("GetProbs.Prod4");
 
-          //BEGIN_TIMER("GetProbs.BroadcastVec");
+          BEGIN_TIMER("GetProbs.BroadcastVec");
           BroadcastVec(_1 + _2, Probs, *b4);
-          //PAUSE_TIMER("GetProbs.BroadcastVec");
+          PAUSE_TIMER("GetProbs.BroadcastVec");
 
           BEGIN_TIMER("GetProbs.LogSoftMax");
           mblas::LogSoftmax(Probs);
